@@ -48,16 +48,16 @@ object Rivelaine {
     }
   }
 
-  def getDomainName(url: String) = {
+  def splitUrl(url: String) = {
     val splitedUrl = url.replace((pattern_http findFirstIn url).head + "://","")
                         .replace("www.","") 
                         .split("/")
     List(splitedUrl(0),if (!splitedUrl.tail.isEmpty) splitedUrl.tail.mkString("/") else "")
   }
 
-  // def getText(dom: Document, extractor: String) : String = {
-  //   dom >> text(extractor) 
-  // }
+  def getDomainName(url: String) : String = {
+    splitUrl(url)(0)
+  }
 
   def getDom(content: String, mode: String) : Document = {
     mode match {
@@ -69,6 +69,7 @@ object Rivelaine {
   }
 
   def getAttr(elementList: List[Object], attributeList: List[String], attributeKey: String) : List[String] = {
+    println("====" + elementList)
     elementList match {
       case Nil => attributeList
       case v :: tail => getAttr(tail, attributeList ::: List(v.asInstanceOf[Element].attr(attributeKey)), attributeKey)
@@ -99,6 +100,11 @@ object Rivelaine {
     }
 
     grabLink(getAttr(dom.select("a").toArray.toList, List[String](), "href"), links)
+  }
+
+  def getLinkJava(content: String, domainName: String, mode: String) = {
+    val links = getLink(content, domainName, mode)
+    Map("in_path" -> links("in_path").asJava, "in_url" -> links("in_url").asJava, "out_social" -> links("out_social").asJava, "out_url" -> links("out_url").asJava).asJava
   }
 
   def getScraper(path: String, domainName: List[String]) = {
@@ -141,9 +147,9 @@ object Rivelaine {
 
     options("mode") match {
       case "link" =>
-        getLink(options("path"),getDomainName(options("path"))(0),"url")
+        println(getLink(options("path"),getDomainName(options("path")),"url"))
       case "scrap" =>
-        getScraper(options("path"),getDomainName(options("path")))
+        getScraper(options("path"),splitUrl(options("path")))
     }
   }
 }
