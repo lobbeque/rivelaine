@@ -69,7 +69,6 @@ object Rivelaine {
   }
 
   def getAttr(elementList: List[Object], attributeList: List[String], attributeKey: String) : List[String] = {
-    println("====" + elementList)
     elementList match {
       case Nil => attributeList
       case v :: tail => getAttr(tail, attributeList ::: List(v.asInstanceOf[Element].attr(attributeKey)), attributeKey)
