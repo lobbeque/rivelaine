@@ -64,7 +64,9 @@ object Rivelaine {
    */
   val pattern_title      = """(title|titre|h1)""".r 
   val pattern_author     = """(byline|author|writtenby|pseudo|avatar|auteur)""".r 
-  val pattern_date       = """(date|time$)""".r 
+  val pattern_author_no  = """(message-author|socialmedia)""".r
+  val pattern_date       = """(date|time$)""".r
+  val pattern_author_date= """(Date \:)""".r 
   val pattern_meta       = """(descriptif|description)""".r
   val pattern_comm       = """(comment|commentaire)""".r
   val pattern_keep       = """(content|annonce|and|article|body|column|main|shadow|discussion|post|forum|comment|bloc)""".r
@@ -78,7 +80,7 @@ object Rivelaine {
   /*
    * Clean patterns 
    */
-  val pattern_clean_author = """(,|\[ MP \] \[ Ajouter à mes amis \]|\[ MP \]|par |by |\[ Ajouter à mes amis \]||\[ PM \]||\[ \]|\[)""".r
+  val pattern_clean_author = """(,|\[ MP \] \[ Ajouter à mes amis \]|\[ MP \]|par |by |\[ Ajouter à mes amis \]|copyright yabiladi\.com||\[ PM \]||\[ \]|\[)""".r
   val pattern_clean_date   = """(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]|(?:Jan|Mar|May|Mai|Jul|Juillet|Aug|Aou|Oct|Dec)))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2]|(?:Jan|Mar|Apr|Avr|May|Mai|Jun|Juin|Jul|Aug|Aou|Sep|Oct|Nov|Dec))\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)(?:0?2|(?:Feb))\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9]|(?:Jan|Feb|Fev|Mar|Apr|Avr|May|Mai|Jun|Juin|Jul|Juillet|Aou|Aug|Sep))|(?:1[0-2]|(?:Oct|Nov|Dec)))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})""".r
 
   def appendMapList(map: Map[String, List[String]], k: String, v: String) : Map[String, List[String]] = {
@@ -332,14 +334,18 @@ object Rivelaine {
     (node.attr("rel") == "author" || doesItMatch(nodeId, pattern_author)) && 
     node.text().length > 1 && 
     !doesItMatch(childrenId, pattern_remove) &&
-    node.text().length < 100
+    node.text().length < 100 &&
+    !doesItMatch(nodeId, pattern_author_no) &&
+    !doesItMatch(node.text(), pattern_clean_date)
   }
 
   def isDate(node: Element, nodeId: String) : Boolean = {
-    doesItMatch(nodeId, pattern_date) &&
-    node.text().length > 1 &&
-    !doesItMatch(nodeId,pattern_social_span) &&
-    node.text().length < 100
+    (doesItMatch(nodeId, pattern_date) &&
+        node.text().length > 1 &&
+        !doesItMatch(nodeId,pattern_social_span) &&
+        node.text().length < 100) ||
+    (doesItMatch(nodeId, pattern_author) &&
+        doesItMatch(node.text(), pattern_clean_date))
   }
 
   def isMeta(node: Element, nodeId: String) : Boolean = {
@@ -602,9 +608,19 @@ object Rivelaine {
         cleanDom(getNextNode(node,false),selected :+ new Tuple3(node,"title",getNbParents(node)))
       
       } else if (isAuthor(node,nodeId)) {
-        // println("author = " + nodeId)
-        cleanDom(getNextNode(node,false),selected :+ new Tuple3(node,"author",getNbParents(node))) 
-      
+
+        val allChildrenId = getAllChildrenId(node.children().first(),node)
+
+        if (doesItMatch(allChildrenId,"""(buzz|print)""".r)) {
+          cleanDom(getNextNode(node,false),selected)
+        } else if (doesItMatch(node.text(),pattern_author_date)) {
+          cleanDom(getNextNode(node,false),selected :+ new Tuple3(node,"date",getNbParents(node))) 
+        } else if (doesItMatch(node.text(),"""(Auteur \:)""".r)){
+          cleanDom(getNextNode(getNextNode(node,false),false),selected :+ new Tuple3(getNextNode(node,false),"author",getNbParents(getNextNode(node,false))))           
+        } else {
+          cleanDom(getNextNode(node,false),selected :+ new Tuple3(node,"author",getNbParents(node)))          
+        } 
+
       } else if (isDate(node,nodeId)) {
         // println("date = " + nodeId)
         cleanDom(getNextNode(node,false),selected :+ new Tuple3(node,"date",getNbParents(node)))
@@ -776,9 +792,9 @@ object Rivelaine {
 
     // println(content)
 
-    // println(flatten(content))
+    // println(doesItMatch(content.toString(),"""(Facebook)""".r) )
 
-    // printContent(content)
+    printContent(content)
 
     // println(flatten(content))
 
@@ -796,13 +812,13 @@ object Rivelaine {
 
     val content = grabContent(removeNodes(dom,List("head","script","style")))
 
-    val mainAuthorDate = getAuthorAndDateFromContent(content.flatten)
+    // val mainAuthorDate = getAuthorAndDateFromContent(content.flatten)
 
-    val author = mainAuthorDate._1
+    // val author = mainAuthorDate._1
 
-    val date = mainAuthorDate._2  
+    // val date = mainAuthorDate._2  
 
-    // if (doesItMatch(date,"""(17h43)""".r)) {
+    // if (doesItMatch(title,"""(Ouverture du centre culturel marocain à Bruxelles)""".r)) {
     //   val pw = new PrintWriter(new File("toto.html" ))
     //   pw.write(page)
     //   pw.close
@@ -810,7 +826,7 @@ object Rivelaine {
 
     // println(title + " === " + author + " === " + date)
     
-    val res = headData + ("content_title" -> title) + ("content_author" -> author) + ("content_date" -> date ) + ("content" -> flatten(content).map(seq => seq.map(ele => ele.asJava).asJava).asJava)  
+    val res = headData + ("content_title" -> title) + ("content" -> flatten(content).map(seq => seq.map(ele => ele.asJava).asJava).asJava)  
 
     res.asJava
   }
