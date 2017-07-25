@@ -469,7 +469,11 @@ object Rivelaine {
       case regex :: tail => 
         if (doesItMatch(date,regex._1)) {
           val format = if (regex._3 != "nop") new SimpleDateFormat(regex._2,Pattern.date_local(regex._3)) else new SimpleDateFormat(regex._2)
-          Some(format.parse(regex._1.findFirstIn(date).getOrElse("")))
+          try {
+            Some(format.parse(regex._1.findFirstIn(date).getOrElse(""))) 
+          } catch {
+            case e: Exception => parseDate(date, tail)
+          }
         } else {
           parseDate(date, tail)
         }
@@ -801,6 +805,16 @@ object Rivelaine {
     // println(res.asJava)
     
   }
+
+  def getHeaderJava(page: String, mode: String = "file") = {
+    val dom : Document = getDom(page,mode)
+    var res = Map[String,String]()
+    res += "publisher" -> getNodeValue(dom.select("head"),pattern_metaPublisher)
+    res += "published_date" -> getNodeValue(dom.select("head"),pattern_metaPublishedTime)
+    res += "description" -> getNodeValue(dom.select("head"),pattern_metaDesc)
+    res += "title" -> getMainTitle(dom)
+    res.asJava   
+  }  
 
   def getContentJava(page: String, mode: String = "file") = {
     
