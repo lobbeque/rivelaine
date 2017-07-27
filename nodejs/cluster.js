@@ -1,11 +1,12 @@
+/*
+ * Hack from fathom-web's cluster function https://github.com/mozilla/fathom/blob/master/clusters.js
+ */
 
 const {isDomElement, isWhitespace, min} = require('fathom-web/utils.js');
-const _ = require('underscore');
-const {flatten} = require('wu');
+const _                                 = require('underscore');
+const {flatten}                         = require('wu');
+const {pattern}                         = require("./utils.js");
 
-var pattern = {
-    'textInline'  : /A|B|BIG|I|SMALL|TT|ABBR|ACRONYM|CITE|EM|STRONG|SCRIPT|SPAN|LABEL|TEXTAREA/i
-}
 
 function getNodeId(n) {
     return n.element.tagName + ' ' + n.element.id + ' ' + n.element.className;
@@ -37,8 +38,6 @@ function numStrides(left, right) {
     return num;
 }
 
-// hack based on "distance" https://github.com/mozilla/fathom/blob/master/clusters.js
-
 function fragDistance(fnodeA,
                   fnodeB,
                   fnodes,
@@ -46,6 +45,10 @@ function fragDistance(fnodeA,
                    differentTagCost = 2,
                    sameTagCost = 1,
                    strideCost = 1,
+                   typeCost = 50,
+                   colorCost = 20,
+                   distCost = 10,
+                   vipsCost = 10,
                    additionalCost = (fnodeA, fnodeB) => 0} = {}) {
 
     var debug = false;
@@ -66,7 +69,7 @@ function fragDistance(fnodeA,
 
     // console.log(elementA.tagName + ' ' + elementA.id + ' ' + elementA.className + " === " + elementB.tagName + ' ' + elementB.id + ' ' + elementB.className)
 
-    // Ascend to common parent, stacking them up for later reference:
+    // Ascend to common parent, stacking them current for later reference:
     while (!aAncestor.contains(elementB)) {  // Note: an element does contain() itself.
         aAncestor = aAncestor.parentNode;
         aAncestors.push(aAncestor); //aAncestors = [a, b]. aAncestor = b // if a is outer: no loop here; aAncestors = [a]. aAncestor = a.
@@ -77,38 +80,45 @@ function fragDistance(fnodeA,
     const comparison = elementA.compareDocumentPosition(elementB);
 
     // If either contains the other, abort. We'd either return a misleading
-    // number or else walk upward right out of the document while trying to
+    // number or else walk currentward right out of the document while trying to
     // make the ancestor stack.
     if (comparison & (elementA.DOCUMENT_POSITION_CONTAINS | elementA.DOCUMENT_POSITION_CONTAINED_BY)) {
         return Number.MAX_VALUE;
     }
     // Make an ancestor stack for the right node too so we can walk
-    // efficiently down to it:
+    // efficiently next to it:
     do {
-        bAncestor = bAncestor.parentNode;  // Assumes we've early-returned above if A === B. This walks upward from the outer node and up out of the tree. It STARTS OUT with aAncestor === bAncestor!
+        bAncestor = bAncestor.parentNode;  // Assumes we've early-returned above if A === B. This walks currentward from the outer node and current out of the tree. It STARTS OUT with aAncestor === bAncestor!
         bAncestors.push(bAncestor);
     } while (bAncestor !== aAncestor);
 
     // Figure out which node is left and which is right, so we can follow
     // sibling links in the appropriate directions when looking for stride
     // nodes:
+  
     let left = aAncestors;
     let right = bAncestors;
-    let up = fnodeA;
-    let down = fnodeB;
+  
+    let current = fnodeA;
+    let next = fnodeB;
+  
     let cost = 0;
     if (comparison & elementA.DOCUMENT_POSITION_FOLLOWING) {
         // A is before, so it could contain the other node. What did I mean to do if one contained the other?
         left = aAncestors;
         right = bAncestors;
-        up = fnodeA;
-    	down = fnodeB;
+        
+        current = fnodeA;
+    	next = fnodeB;
+    
     } else if (comparison & elementA.DOCUMENT_POSITION_PRECEDING) {
         // A is after, so it might be contained by the other node.
         left = bAncestors;
         right = aAncestors;
-        up = fnodeB;
-    	down = fnodeA;
+    
+        current = fnodeB;
+    	next = fnodeA;
+    
     }
 
     /*
@@ -125,23 +135,23 @@ function fragDistance(fnodeA,
     	return false;
     }
 
-    function upDownCost(up,down,upDepth,downDepth) {
+    function nodeTypeDistance(current,next,currentDepth,nextDepth) {
     	var tmp = 0;
-    	var upClass = up.element.getAttribute("nodeType");
-    	var downClass = down.element.getAttribute("nodeType");
+    	var currentClass = current.element.getAttribute("nodeType");
+    	var nextClass = next.element.getAttribute("nodeType");
 
-    	if (upClass == 'date' || upClass == 'author' || upClass == 'title') {
-            if (downClass == 'text' || downClass == 'other') {
+    	if (currentClass == 'date' || currentClass == 'author' || currentClass == 'title') {
+            if (nextClass == 'text' || nextClass == 'other') {
                 tmp += 0;
-            } else if (upDepth <= downDepth) {
+            } else if (currentDepth <= nextDepth) {
     			tmp += 0;
     		} else {
-    			tmp += 50;
+    			tmp += typeCost;
     		}
-    	} else if (upClass == 'text' && ( downClass == 'text' || downClass == 'title' ) && upDepth <= downDepth) {
+    	} else if (currentClass == 'text' && ( nextClass == 'text' || nextClass == 'title' ) && currentDepth <= nextDepth) {
     		tmp += 0
     	} else {
-    		tmp += 50;
+    		tmp += typeCost;
     	}
 
     	return tmp;
@@ -151,19 +161,21 @@ function fragDistance(fnodeA,
     if (fnodeA.element.textContent.match(/furtif/i) && debug)
         console.log("1 : " + cost)
 
-    cost += elementA.style.backgroundColor != elementB.style.backgroundColor ? 20 : 0; 
+    // typeCost colorCost distCost vipsCost
 
-    idxUp = fnodes.indexOf(up) 
-    idxDown = fnodes.indexOf(down);
+    cost += elementA.style.backgroundColor != elementB.style.backgroundColor ? colorCost : 0; 
 
-    if (idxUp + 1 == idxDown) {
-        cost += upDownCost(up,down,left.length,right.length);
+    idxcurrent = fnodes.indexOf(current) 
+    idxnext = fnodes.indexOf(next);
+
+    if (idxcurrent + 1 == idxnext) {
+        cost += nodeTypeDistance(current,next,left.length,right.length);
 
         if (fnodeA.element.textContent.match(/furtif/i) && debug)
             console.log("2 : " + cost)
 
     } else {
-        cost += 10 * (idxDown - idxUp)
+        cost += distCost * (idxnext - idxcurrent)
 
         if (fnodeA.element.textContent.match(/furtif/i) && debug)
             console.log("3 : " + cost)
@@ -196,17 +208,17 @@ function fragDistance(fnodeA,
 
         	// based on VIPS algorithm
 
-        	cost += r.tagName == "HR" ? 10 : 0;
+        	cost += r.tagName == "HR" ? vipsCost : 0;
 
             if (fnodeA.element.textContent.match(/furtif/i) && debug)
                 console.log("6 : " + cost)
 
-        	cost += r.tagName == "BR" ? 10  : 0; 
+        	cost += r.tagName == "BR" ? vipsCost : 0; 
         	
             if (fnodeA.element.textContent.match(/furtif/i) && debug)
                 console.log("7 : " + cost)
 
-            cost += isBreakLine(r,_.first(right)) ? 10 : 0;
+            cost += isBreakLine(r,_.first(right)) ? vipsCost : 0;
 
             if (fnodeA.element.textContent.match(/furtif/i) && debug)
                 console.log("8 : " + cost)
@@ -230,7 +242,6 @@ function fragDistance(fnodeA,
             console.log(fnodeA.element.textContent)
         }
     }
-    
 
     return cost + additionalCost(fnodeA, fnodeB);
 }
@@ -267,7 +278,8 @@ class DistanceMatrix {
             const innerMap = new Map();
             for (let innerCluster of this._matrix.keys()) {
                 innerMap.set(innerCluster, distance(outerCluster[0],
-                                                    innerCluster[0],elements));
+                                                    innerCluster[0],
+                                                    elements));
             }
             this._matrix.set(outerCluster, innerMap);
         }
@@ -394,10 +406,9 @@ class DistanceMatrix {
  *     the latter.
  */
 function fragClusters(fnodes, splittingDistance, getDistance = distance) {
+
     const matrix = new DistanceMatrix(fnodes, getDistance);
     let closest;
-
-    // console.log(matrix)
 
     while (matrix.numClusters() > 1 && (closest = matrix.closest()).distance < splittingDistance) {
         matrix.merge(closest.a, closest.b);
@@ -405,7 +416,6 @@ function fragClusters(fnodes, splittingDistance, getDistance = distance) {
 
     return matrix.clusters();
 }
-
 
 module.exports = {
     fragDistance,
