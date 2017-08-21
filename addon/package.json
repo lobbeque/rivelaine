@@ -1,0 +1,30 @@
+{
+  "title": "Rivelaine",
+  "name": "rivelaine",
+  "version": "0.0.1",
+  "description": "Extract fragments from web pages",
+  "main": "index.js",
+  "author": "qlobbe",
+  "engines": {
+    "firefox": ">=38.0a1",
+    "fennec": ">=38.0a1"
+  },
+  "license": "MIT",
+  "keywords": [
+    "jetpack"
+  ],
+  "dependencies": {
+    "domjson": "^0.1.2",
+    "fathom-web": "^2.1.0",
+    "fs": "0.0.1-security",
+    "htmlparser2": "^3.9.2",
+    "jpm": "^1.3.1",
+    "jsdom": "^7.2.2",
+    "underscore": "^1.8.3",
+    "url": "^0.11.0",
+    "util": "^0.10.3",
+    "xhr": "^2.4.0",
+    "xmldom": "^0.1.27",
+    "xmlhttprequest": "^1.8.0"
+  }
+}

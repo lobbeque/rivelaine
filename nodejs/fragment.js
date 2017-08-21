@@ -281,6 +281,7 @@ function getFragment(domTree, end, splitLength = 15) {
         
         if (!child) {
             res.node.push(ele.outerHTML);
+            res.nodeId.push(eleId);
             if (nodeType != "expLocal" && nodeType != "expGlobal") {
                 res.text  += " " + ele.textContent.trim();
                 res.ratio += ele.outerHTML.length;
@@ -304,6 +305,7 @@ function getFragment(domTree, end, splitLength = 15) {
             'href'   : [],
             'ratio'  :  0,
             'node'   : [],
+            'nodeId' : [],
             'offset' :  0,
             'text'   : "",
         }
@@ -327,7 +329,11 @@ function getFragment(domTree, end, splitLength = 15) {
         return tmp;
     });
 
-    end(null,res);    
+    if (end != null) {
+        end(null,res); 
+    } else {
+        return res;
+    }   
 
 }
 
