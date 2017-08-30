@@ -20,17 +20,15 @@ function handleClick(state) {
 
 
 		var req = Request({
-		  url: "http://localhost:2200/getFragment?source=" + focusUrl,
+		  url: "http://lame10:2200/getFragment?addon=true&source=" + focusUrl,
 		  onComplete: function (response) {
-		  	
-		  	var frag = _.map(JSON.parse(response.text),function(f){
-		  		return _.pick(f,["node","nodeId"]);
-		  	})
+
+			var frag = JSON.parse(response.text);
 
 			var worker = tabs.activeTab.attach({
 		      contentScriptFile: self.data.url("content-script.js")
 		    });
-		    
+
 		    worker.port.emit("frag",JSON.stringify(frag));			
 		  
 		  }

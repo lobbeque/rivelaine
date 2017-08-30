@@ -19,14 +19,16 @@ const argv = require('yargs')
     .default('mode','server')
     .argv;
 
-function getDom(s,end) {
+function getDom(s,end,addon=false) {
 
     if (isUrl(s)) {
+
+        console.log(s)
 
         // Source is an Url
 
         afterLoad(s,function(html){
-            return getFragment(staticDom(html),end)
+            return getFragment(staticDom(html),end,addon)
         });        
 
     } else if (fs.existsSync(s)) {
@@ -69,9 +71,14 @@ if (argv.mode != "script") {
             return;
         }
 
+        var addon = false;
+        if (req.query.addon != null) {
+            addon = (req.query.addon == 'true');
+        }
+
         async.waterfall([
             function(end) {
-                getDom(decodeURI(req.query.source),end)
+                getDom(decodeURI(req.query.source),end,addon)
             }
         ], function (err, result) {
             if (err)

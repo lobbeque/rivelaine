@@ -147,7 +147,9 @@ function scoreByCrap(n,a=-1000) {
     return {score : score};
 }
 
-function getFragment(domTree, end, splitLength = 15) {
+function getFragment(domTree, end, addon=false) {
+
+    var splitLength = 15;
 
     // Extract web fragments from nodes
 
@@ -203,8 +205,9 @@ function getFragment(domTree, end, splitLength = 15) {
         var i = cntNodes.indexOf(n)
 
         // Save parent & remove cloned children
-        if (nodeCache != null && nodeCache.element.contains(n.element))
+        if (nodeCache != null && nodeCache.element.contains(n.element)) {
             keep = false;
+        }
 
         // Remove frag < 0
         if (keep && n.scoreFor('cntNode') < 0) {
@@ -214,8 +217,9 @@ function getFragment(domTree, end, splitLength = 15) {
         }
             
         // Remove wrap up frag
-        if (keep && cntNodes[i +1] != null && n.element.textContent == cntNodes[i +1].element.textContent)
+        if (keep && cntNodes[i +1] != null && n.element.textContent == cntNodes[i +1].element.textContent) {
             keep = false;
+        }
             
         // Save or remove parent based on nodeType rules
         if (keep && cntNodes[i + 1] != null && n.element.contains(cntNodes[i + 1].element)) {
@@ -290,44 +294,70 @@ function getFragment(domTree, end, splitLength = 15) {
         return res;
     }
 
-    var res = _.map(fragments, function(f){
+    if (addon) {
 
-        f = domSort(f);
+        // if rivelaine is used as an addon return the full dom
+
+        _.each(fragments,function(f){
+            _.each(f,function(n){
+                n.element.setAttribute("isFrag","true");
+                var children = n.element.children;
+                for (var i = 0; i < children.length; i++) {
+                    children[i].setAttribute("isFrag","true");
+                }
+            })
+        })
 
         _.each(expNodes,function(e){
-            f.push(e);
+            e.element.setAttribute("isFrag","true");
         })
-        
-        var tmp = {
-            'type'   : [],
-            'author' : [],
-            'date'   : [],
-            'href'   : [],
-            'ratio'  :  0,
-            'node'   : [],
-            'nodeId' : [],
-            'offset' :  0,
-            'text'   : "",
-        }
 
-        tmp.offset = fragments.indexOf(f);
+        var res = {'dom' : domTree.documentElement.innerHTML};
 
-        _.each(f,function(n){
-            tmp = nodeToSolrFields(n.element,tmp,false);
-            if (n.element.getAttribute("nodeType") != "expLocal" && n.element.getAttribute("nodeType") != "expGlobal") {
-                var children = n.element.children;
-                for (var i = 0; i < children.length; ++i) {
-                    tmp = nodeToSolrFields(children[i],tmp,true);
-                }
+    } else {
+
+        var res = _.map(fragments, function(f){
+
+            var offset = fragments.indexOf(f);
+
+            f = domSort(f);
+
+            _.each(expNodes,function(e){
+                f.push(e);
+            })
+            
+            var tmp = {
+                'type'   : [],
+                'author' : [],
+                'date'   : [],
+                'href'   : [],
+                'ratio'  :  0,
+                'node'   : [],
+                'nodeId' : [],
+                'offset' :  0,
+                'text'   : "",
             }
-        })
 
-        tmp.ratio = tmp.ratio / domTree.documentElement.outerHTML.length; 
+            tmp.offset = offset;
 
-        // Add expression nodes 
+            _.each(f,function(n){
+                tmp = nodeToSolrFields(n.element,tmp,false);
+                if (n.element.getAttribute("nodeType") != "expLocal" && n.element.getAttribute("nodeType") != "expGlobal") {
+                    var children = n.element.children;
+                    for (var i = 0; i < children.length; ++i) {
+                        tmp = nodeToSolrFields(children[i],tmp,true);
+                    }
+                }
+            })
 
-        return tmp;
-    });
+            tmp.ratio = tmp.ratio / domTree.documentElement.outerHTML.length; 
+
+            // Add expression nodes 
+
+            return tmp;
+        });
+
+    }
 
     if (end != null) {
         end(null,res); 
