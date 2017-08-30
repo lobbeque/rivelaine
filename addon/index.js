@@ -38,15 +38,13 @@ function handleClick(state) {
 
 		req.get();
 
-		
-
 	}
 
 }
 
 var button = buttons.ActionButton({
-  id: "mozilla-link",
-  label: "Visit Mozilla",
+  id: "fragment-link",
+  label: "Fragment the page",
   icon: {
     "16": "./icon-16.png",
     "32": "./icon-32.png",

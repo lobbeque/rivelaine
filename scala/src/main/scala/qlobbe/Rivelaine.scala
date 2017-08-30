@@ -339,6 +339,10 @@ object Rivelaine {
     !doesItMatch(node.text(), pattern_clean_date)
   }
 
+  def isStringDate(str: String) : Boolean = {
+    doesItMatch(str, pattern_clean_date);
+  }
+
   def isDate(node: Element, nodeId: String) : Boolean = {
     (doesItMatch(nodeId, pattern_date) &&
         node.text().length > 1 &&
@@ -806,8 +810,8 @@ object Rivelaine {
     
   }
 
-  def getHeaderJava(page: String, mode: String = "file") = {
-    val dom : Document = getDom(page,mode)
+  def getHeaderJava(page: String) = {
+    val dom : Document = getDom(page,"file")
     var res = Map[String,String]()
     res += "publisher" -> getNodeValue(dom.select("head"),pattern_metaPublisher)
     res += "published_date" -> getNodeValue(dom.select("head"),pattern_metaPublishedTime)

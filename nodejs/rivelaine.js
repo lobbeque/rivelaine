@@ -23,8 +23,6 @@ function getDom(s,end) {
 
     if (isUrl(s)) {
 
-        console.log(s)
-
         // Source is an Url
 
         afterLoad(s,function(html){
