@@ -23,7 +23,7 @@ function getDom(s,end,addon=false) {
 
     if (isUrl(s)) {
 
-        console.log(s)
+        // console.log(s)
 
         // Source is an Url
 
