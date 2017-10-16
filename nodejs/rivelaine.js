@@ -14,16 +14,17 @@ const _             = require('underscore');
 const async         = require('async');
 
 const argv = require('yargs')
-    .demandOption(['mode'])
+    .demandOption(['mode','type'])
     .choices('mode', ['server','script'])
+    .choices('type', ['url','file','dom'])
     .default('mode','server')
+    .default('type','url')
+
     .argv;
 
-function getDom(s,end,addon=false) {
+function getDom(s,end,type,addon=false) {
 
-    if (isUrl(s)) {
-
-        // console.log(s)
+    if (type == "url") {
 
         // Source is an Url
 
@@ -31,7 +32,7 @@ function getDom(s,end,addon=false) {
             return getFragment(staticDom(html),end,addon)
         });        
 
-    } else if (fs.existsSync(s)) {
+    } else if (type == "file") {
 
         // Source is a Html file
 
@@ -42,9 +43,15 @@ function getDom(s,end,addon=false) {
         });        
 
 
-    } else {
+    } else if (type == "dom") {
 
         // Source is a Dom tree
+
+        return getFragment(staticDom(s),end)
+
+    } else {
+
+        // Default
 
         return getFragment(staticDom(s),end)
 
@@ -64,7 +71,9 @@ if (argv.mode != "script") {
 
     app.get('/getFragment', function(req, res){
 
-        // http://localhost:2200/getFragment?source=http%3A%2F%2Fqlobbe.net%2Fbio.html
+	   // console.log("Got a request");
+
+        // http://localhost:2200/getFragment?type=url&source=http%3A%2F%2Fqlobbe.net%2Fbio.html
 
         if (req.query.source == null) {
             res.status(500).send({ error: 'Please add a source=... param !' });
@@ -76,9 +85,18 @@ if (argv.mode != "script") {
             addon = (req.query.addon == 'true');
         }
 
+        var type = "url";
+        if (req.query.type != null) {
+            type = req.query.type;
+        }        
+
+	    // console.log("And everithing's ok");
+
+        // console.log(req.query.source);
+
         async.waterfall([
             function(end) {
-                getDom(decodeURI(req.query.source),end,addon)
+                getDom(req.query.source,end,type,addon)
             }
         ], function (err, result) {
             if (err)
@@ -90,7 +108,7 @@ if (argv.mode != "script") {
 
 } else {
 
-    // node rivelaine.js --mode=script --source="http://qlobbe.net/bio.html"
+    // node rivelaine.js --mode=script --source="http://qlobbe.net/bio.html" --type=url
 
     // Run rivelaine as a node script ( for test & debug )
 
@@ -99,9 +117,14 @@ if (argv.mode != "script") {
         process.exit(1)
     }
 
+    if (argv.type == null) {
+        console.log("Please add a --type=... param !");
+        process.exit(1)
+    }
+
     async.waterfall([
         function(end) {
-            getDom(argv.source,end);
+            getDom(argv.source,end,type);
         }
     ], function (err, result) {
         if (err)
