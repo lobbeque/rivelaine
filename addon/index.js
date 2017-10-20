@@ -20,7 +20,7 @@ function handleClick(state) {
 
 
 		var req = Request({
-		  url: "http://lame10:2200/getFragment?addon=true&source=" + focusUrl,
+		  url: "http://localhost:2200/getFragment?addon=true&source=" + focusUrl,
 		  onComplete: function (response) {
 
 			var frag = JSON.parse(response.text);
@@ -44,9 +44,9 @@ var button = buttons.ActionButton({
   id: "fragment-link",
   label: "Fragment the page",
   icon: {
-    "16": "./icon-16.png",
-    "32": "./icon-32.png",
-    "64": "./icon-64.png"
+    "16": "./frag-16.png",
+    "32": "./frag-32.png",
+    "64": "./frag-64.png"
   },
   onClick: handleClick
 });

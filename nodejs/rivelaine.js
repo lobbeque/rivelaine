@@ -12,6 +12,7 @@ const {staticDom}   = require('fathom-web/utils');
 const afterLoad     = require('after-load');
 const _             = require('underscore');
 const async         = require('async');
+const cluster       = require('cluster');
 
 const argv = require('yargs')
     .demandOption(['mode','type'])
@@ -59,8 +60,52 @@ function getDom(s,end,type,addon=false) {
 
 }
 
-if (argv.mode != "script") {
-    
+if (cluster.isMaster) {
+
+    console.log('== Master ' + process.pid + ' is up ==');
+
+    if (argv.mode != "script") {
+
+        // fork workers
+      
+        for (var i = 0; i < config.nbW; i++) {
+
+            cluster.fork()
+        }
+
+    } else {
+
+        // node rivelaine.js --mode=script --source="http://qlobbe.net/bio.html" --type=url
+
+        // Run rivelaine as a node script ( for test & debug )
+
+        if (argv.source == null) {
+            console.log("Please add a --source=... param !");
+            process.exit(1)
+        }
+
+        if (argv.type == null) {
+            console.log("Please add a --type=... param !");
+            process.exit(1)
+        }
+
+        async.waterfall([
+            function(end) {
+                getDom(argv.source,end,type);
+            }
+        ], function (err, result) {
+            if (err)
+                res.status(500).send({ error: 'Shit happens !' });
+
+            console.log(result)
+        });
+
+    }
+
+}
+
+if (cluster.isWorker && argv.mode != "script") {
+
     // Run rivelaine as a node server listening to rest and socket requests
 
     app.configure();
@@ -71,7 +116,7 @@ if (argv.mode != "script") {
 
     app.get('/getFragment', function(req, res){
 
-	   // console.log("Got a request");
+       // console.log("Got a request");
 
         // http://localhost:2200/getFragment?type=url&source=http%3A%2F%2Fqlobbe.net%2Fbio.html
 
@@ -90,7 +135,7 @@ if (argv.mode != "script") {
             type = req.query.type;
         }        
 
-	    // console.log("And everithing's ok");
+        // console.log("And everithing's ok");
 
         // console.log(req.query.source);
 
@@ -105,32 +150,4 @@ if (argv.mode != "script") {
             res.send(result);
         });
     });
-
-} else {
-
-    // node rivelaine.js --mode=script --source="http://qlobbe.net/bio.html" --type=url
-
-    // Run rivelaine as a node script ( for test & debug )
-
-    if (argv.source == null) {
-        console.log("Please add a --source=... param !");
-        process.exit(1)
-    }
-
-    if (argv.type == null) {
-        console.log("Please add a --type=... param !");
-        process.exit(1)
-    }
-
-    async.waterfall([
-        function(end) {
-            getDom(argv.source,end,type);
-        }
-    ], function (err, result) {
-        if (err)
-            res.status(500).send({ error: 'Shit happens !' });
-
-        console.log(result)
-    });    
-
 }
