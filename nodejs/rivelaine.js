@@ -20,7 +20,6 @@ const argv = require('yargs')
     .choices('type', ['url','file','dom'])
     .default('mode','server')
     .default('type','url')
-
     .argv;
 
 function getDom(s,end,type,addon=false) {
