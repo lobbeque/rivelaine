@@ -66,6 +66,10 @@ function hasNodeType(eleId,type) {
     return eleId.match(pattern[type])
 }
 
+function isText(tag) {
+    return tag == "P" || tag == "B" || tag == "I" 
+}
+
 function hasHref(ele) {
     // Does an element have any inline href ?
     return ele.href != null;
@@ -124,6 +128,9 @@ function scoreByNodeType(n,a=1) {
     } else if (hasNodeType(id,'text')) {
         score = score + a;
         nodeType = 'text';
+    } else if (isText(ele.tagName)) {
+        score = score + a;
+        nodeType = 'text';       
     }
     ele.setAttribute("nodeType",nodeType);
     return {score : score, type: 'cntNode', note : id};    
@@ -298,8 +305,27 @@ function getFragment(domTree, end, addon=false) {
 
         // if rivelaine is used as an addon return the full dom
 
+        // https://louladekhmissbatataprise2.com/2017/12/07/boomerang-frikss-of-casablanca/
+
         _.each(fragments,function(f){
+            
+                // create wrapper container
+                var wrapper = domTree.createElement('div');
+
+                wrapper.setAttribute("headFrag","true")
+                wrapper.setAttribute("isFrag","true");
+                wrapper.setAttribute("nodeType","text");
+
+                // insert wrapper before el in the DOM tree
+                // f[0].element.parentNode.insertBefore(wrapper, f[0].element.parentNode);
+
+                f[0].element.parentNode.insertBefore(wrapper,f[0].element)
+
             _.each(f,function(n){
+                
+                // move el into wrapper
+                wrapper.appendChild(n.element);
+                
                 n.element.setAttribute("isFrag","true");
                 var children = n.element.children;
                 for (var i = 0; i < children.length; i++) {

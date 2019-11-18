@@ -67,7 +67,7 @@ if (cluster.isMaster) {
 
         // fork workers
       
-        for (var i = 0; i < config.nbW; i++) {
+        for (var i = 0; i < 2; i++) {
 
             cluster.fork()
         }
@@ -115,7 +115,7 @@ if (cluster.isWorker && argv.mode != "script") {
 
     app.get('/getFragment', function(req, res){
 
-       // console.log("Got a request");
+       console.log("Got a request");
 
         // http://localhost:2200/getFragment?type=url&source=http%3A%2F%2Fqlobbe.net%2Fbio.html
 
@@ -134,9 +134,9 @@ if (cluster.isWorker && argv.mode != "script") {
             type = req.query.type;
         }        
 
-        // console.log("And everithing's ok");
+        console.log("And everithing's ok");
 
-        // console.log(req.query.source);
+        console.log(req.query.source);
 
         async.waterfall([
             function(end) {

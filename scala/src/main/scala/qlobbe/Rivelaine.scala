@@ -722,23 +722,27 @@ object Rivelaine {
 
   def printContent(content :List[List[List[(String,String,String,Int)]]]) = {
 
+    var cpp = 0
     for (seq <- content) {
       println("= = = = =") 
       if (seq.length > 1) {
         for(s <- seq) {
           println("")
           for (node <- s) {
+            cpp += 1
             println("> " + node._2  + " " + node._3)
             println(node._1)
           }  
         }
       } else {
         for (node <- seq(0)) {
+          cpp += 1
           println("> " + node._2  + " " + node._3)
           println(node._1)
         }   
       }
     }
+    println(cpp)
   }
 
   def flatten(content : List[List[List[(String,String,String,Int)]]]) : List[List[Map[String,String]]] = {

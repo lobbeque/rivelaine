@@ -48,8 +48,18 @@ function fragDistance(fnodeA,
                    typeCost = 50,
                    colorCost = 20,
                    distCost = 10,
-                   vipsCost = 10,
+                   vipsCost = 20,
                    additionalCost = (fnodeA, fnodeB) => 0} = {}) {
+
+                  // {differentDepthCost = 2,
+                  //  differentTagCost = 2,
+                  //  sameTagCost = 1,
+                  //  strideCost = 1,
+                  //  typeCost = 50,
+                  //  colorCost = 20,
+                  //  distCost = 10,
+                  //  vipsCost = 20,
+                  //  additionalCost = (fnodeA, fnodeB) => 0} = {}) {
 
     var debug = false;
 
