@@ -9,7 +9,7 @@
     "express": "^4.15.3",
     "fathom-web": "^2.1.0",
     "is-url": "^1.2.2",
-    "jsdom": "^7.2.2",
+    "jsdom": "^16.5.0",
     "underscore": "^1.8.3",
     "yargs": "^8.0.2"
   }
